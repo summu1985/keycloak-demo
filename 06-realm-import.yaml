@@ -1,0 +1,59 @@
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: KeycloakRealmImport
+metadata:
+  name: customer-iam-realm
+  namespace: keycloak-demo
+spec:
+  keycloakCRName: customer-iam
+  realm:
+    realm: customer-iam
+    enabled: true
+    roles:
+      realm:
+        - name: employee_user
+        - name: agent_user
+        - name: banca_user
+        - name: portal_admin
+        - name: auditor
+    clients:
+      - clientId: employee-app
+        enabled: true
+        protocol: openid-connect
+        publicClient: false
+        standardFlowEnabled: true
+        redirectUris:
+          - "https://oauthdebugger.com/debug"
+        webOrigins:
+          - "*"
+      - clientId: agent-portal
+        enabled: true
+        protocol: openid-connect
+        publicClient: false
+        standardFlowEnabled: true
+        redirectUris:
+          - "https://oauthdebugger.com/debug"
+        webOrigins:
+          - "*"
+    users:
+      - username: agent001
+        enabled: true
+        email: agent001@example.com
+        requiredActions:
+          - UPDATE_PASSWORD
+        realmRoles:
+          - agent_user
+        credentials:
+          - type: password
+            value: Password@123
+            temporary: true
+      - username: banca001
+        enabled: true
+        email: banca001@example.com
+        requiredActions:
+          - UPDATE_PASSWORD
+        realmRoles:
+          - banca_user
+        credentials:
+          - type: password
+            value: Password@123
+            temporary: true

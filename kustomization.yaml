@@ -1,0 +1,8 @@
+resources:
+  - 00-namespace.yaml
+  - 01-operatorgroup.yaml
+  - 02-subscription.yaml
+  - 03-postgres.yaml
+  - 04-keycloak-db-secret.yaml
+  - 05-keycloak-cr.yaml
+  - 06-realm-import.yaml

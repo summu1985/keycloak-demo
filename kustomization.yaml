@@ -4,5 +4,6 @@ resources:
   - 02-subscription.yaml
   - 03-postgres.yaml
   - 04-keycloak-db-secret.yaml
-  - 05-keycloak-cr.yaml
-  - 06-realm-import.yaml
+  - 07-custom-image-build.yaml
+  - 08-token-enrichment-api.yaml
+  - 09-openldap.yaml

@@ -1,0 +1,63 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: openldap-bootstrap
+  namespace: keycloak-demo
+data:
+  50-users.ldif: |
+    dn: ou=people,dc=demo,dc=local
+    objectClass: organizationalUnit
+    ou: people
+
+    dn: uid=sp001,ou=people,dc=demo,dc=local
+    objectClass: inetOrgPerson
+    cn: SP Employee
+    sn: Employee
+    uid: sp001
+    mail: sp001@demo.local
+    userPassword: Password@123
+
+    dn: uid=p001,ou=people,dc=demo,dc=local
+    objectClass: inetOrgPerson
+    cn: P Employee
+    sn: Employee
+    uid: p001
+    mail: p001@demo.local
+    userPassword: Password@123
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openldap
+  namespace: keycloak-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: openldap}
+  template:
+    metadata:
+      labels: {app: openldap}
+    spec:
+      containers:
+        - name: openldap
+          image: docker.io/osixia/openldap:1.5.0
+          env:
+            - {name: LDAP_ORGANISATION, value: Demo Corp}
+            - {name: LDAP_DOMAIN, value: demo.local}
+            - {name: LDAP_ADMIN_PASSWORD, value: adminpass}
+            - {name: LDAP_TLS, value: "false"}
+          ports: [{containerPort: 389}]
+          volumeMounts:
+            - {name: bootstrap, mountPath: /container/service/slapd/assets/config/bootstrap/ldif/custom}
+      volumes:
+        - name: bootstrap
+          configMap: {name: openldap-bootstrap}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: openldap
+  namespace: keycloak-demo
+spec:
+  selector: {app: openldap}
+  ports: [{name: ldap, port: 389, targetPort: 389}]

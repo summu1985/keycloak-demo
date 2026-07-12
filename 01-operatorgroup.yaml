@@ -4,5 +4,4 @@ metadata:
   name: keycloak-demo-og
   namespace: keycloak-demo
 spec:
-  targetNamespaces:
-    - keycloak-demo
+  targetNamespaces: [keycloak-demo]

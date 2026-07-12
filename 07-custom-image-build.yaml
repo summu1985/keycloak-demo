@@ -1,0 +1,26 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: customer-keycloak
+  namespace: keycloak-demo
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: customer-keycloak
+  namespace: keycloak-demo
+spec:
+  source:
+    type: Git
+    git:
+      uri: https://github.com/summu1985/keycloak-demo.git
+      ref: main
+    contextDir: extensions
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Containerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: customer-keycloak:latest

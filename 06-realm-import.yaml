@@ -8,52 +8,59 @@ spec:
   realm:
     realm: customer-iam
     enabled: true
+    otpPolicyType: totp
+    otpPolicyAlgorithm: HmacSHA1
+    otpPolicyDigits: 6
+    otpPolicyPeriod: 30
     roles:
       realm:
-        - name: employee_user
-        - name: agent_user
-        - name: banca_user
-        - name: portal_admin
-        - name: auditor
+        - {name: employee_user}
+        - {name: customer_user}
+        - {name: agent_user}
+        - {name: banca_user}
+        - {name: otp_required}
     clients:
       - clientId: employee-app
+        name: Employee Demo App
         enabled: true
         protocol: openid-connect
         publicClient: false
+        secret: employee-app-demo-secret
         standardFlowEnabled: true
-        redirectUris:
-          - "https://oauthdebugger.com/debug"
-        webOrigins:
-          - "*"
-      - clientId: agent-portal
-        enabled: true
-        protocol: openid-connect
-        publicClient: false
-        standardFlowEnabled: true
-        redirectUris:
-          - "https://oauthdebugger.com/debug"
-        webOrigins:
-          - "*"
+        redirectUris: ["https://oauthdebugger.com/debug"]
+        webOrigins: ["https://oauthdebugger.com"]
+        protocolMappers:
+          - name: roles-array
+            protocol: openid-connect
+            protocolMapper: oidc-usermodel-realm-role-mapper
+            consentRequired: false
+            config:
+              claim.name: roles_array
+              jsonType.label: String
+              multivalued: "true"
+              access.token.claim: "true"
+              id.token.claim: "true"
+          - name: roles-csv
+            protocol: openid-connect
+            protocolMapper: comma-separated-roles-mapper
+            config: {}
+          - name: employee-enrichment
+            protocol: openid-connect
+            protocolMapper: external-enrichment-mapper
+            config:
+              api.url: http://token-enrichment-api:8080/enrich
+              fail.closed: "true"
     users:
       - username: agent001
         enabled: true
-        email: agent001@example.com
-        requiredActions:
-          - UPDATE_PASSWORD
-        realmRoles:
-          - agent_user
-        credentials:
-          - type: password
-            value: Password@123
-            temporary: true
+        realmRoles: [agent_user]
+        credentials: [{type: password, value: Password@123, temporary: false}]
       - username: banca001
         enabled: true
-        email: banca001@example.com
-        requiredActions:
-          - UPDATE_PASSWORD
-        realmRoles:
-          - banca_user
-        credentials:
-          - type: password
-            value: Password@123
-            temporary: true
+        realmRoles: [banca_user]
+        credentials: [{type: password, value: Password@123, temporary: false}]
+      - username: "9876543210"
+        enabled: true
+        realmRoles: [customer_user, otp_required]
+        requiredActions: [CONFIGURE_TOTP]
+        credentials: [{type: password, value: Password@123, temporary: false}]

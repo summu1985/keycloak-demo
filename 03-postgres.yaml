@@ -1,3 +1,14 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: keycloak-db
+  namespace: keycloak-demo
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 5Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -6,25 +17,21 @@ metadata:
 spec:
   replicas: 1
   selector:
-    matchLabels:
-      app: keycloak-db
+    matchLabels: {app: keycloak-db}
   template:
     metadata:
-      labels:
-        app: keycloak-db
+      labels: {app: keycloak-db}
     spec:
       containers:
         - name: postgresql
           image: registry.redhat.io/rhel8/postgresql-15
           env:
-            - name: POSTGRESQL_USER
-              value: keycloak
-            - name: POSTGRESQL_PASSWORD
-              value: keycloakpass
-            - name: POSTGRESQL_DATABASE
-              value: keycloak
-          ports:
-            - containerPort: 5432
+            - {name: POSTGRESQL_USER, valueFrom: {secretKeyRef: {name: keycloak-db-secret, key: username}}}
+            - {name: POSTGRESQL_PASSWORD, valueFrom: {secretKeyRef: {name: keycloak-db-secret, key: password}}}
+            - {name: POSTGRESQL_DATABASE, value: keycloak}
+          ports: [{containerPort: 5432}]
+          volumeMounts: [{name: data, mountPath: /var/lib/pgsql/data}]
+      volumes: [{name: data, persistentVolumeClaim: {claimName: keycloak-db}}]
 ---
 apiVersion: v1
 kind: Service
@@ -32,8 +39,5 @@ metadata:
   name: keycloak-db
   namespace: keycloak-demo
 spec:
-  selector:
-    app: keycloak-db
-  ports:
-    - port: 5432
-      targetPort: 5432
+  selector: {app: keycloak-db}
+  ports: [{port: 5432, targetPort: 5432}]

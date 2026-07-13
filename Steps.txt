@@ -1,0 +1,220 @@
+From your workstation or OpenShift terminal, verify:
+
+oc whoami
+oc project
+oc version
+
+You need:
+
+Cluster-admin or sufficient permission to install an Operator
+Access to registry.redhat.io
+An OpenShift cluster with the internal image registry enabled
+GitHub repository containing the updated resources
+jq, envsubst, curl and base64
+
+Confirm the OpenShift apps domain:
+
+oc get ingress.config.openshift.io cluster \
+  -o jsonpath='{.spec.domain}'
+echo
+
+Expected output:
+
+apps.cluster-59bfb.dynamic2.redhatworkshops.io
+
+unzip keycloak-demo-updated.zip
+cd keycloak-demo-updated
+
+Make the scripts executable:
+
+chmod +x scripts/*.sh
+
+Review the structure:
+
+find . -maxdepth 3 -type f | sort
+
+./.DS_Store
+./00-namespace.yaml
+./01-operatorgroup.yaml
+./02-subscription.yaml
+./03-postgres.yaml
+./04-keycloak-db-secret.yaml
+./05-keycloak-cr.yaml.tpl
+./06-realm-import.yaml
+./07-custom-image-build.yaml
+./08-token-enrichment-api.yaml
+./09-openldap.yaml
+./docs/AUTHENTICATION-FLOW.md
+./docs/LDAP-SETUP.md
+./extensions/Containerfile
+./extensions/pom.xml
+./kustomization.yaml
+./README.md
+./scripts/deploy-keycloak.sh
+./scripts/deploy.sh
+./Steps.txt
+
+Check the resources into GitHub
+
+This step is required because the OpenShift BuildConfig builds the custom Keycloak image directly from your GitHub repository.
+
+Copy the package contents into your repository:
+
+git clone https://github.com/summu1985/keycloak-demo.git
+cd keycloak-demo
+
+cp -R /path/to/keycloak-demo-updated/* .
+
+Commit and push:
+
+git add .
+git commit -m "Add reusable Keycloak custom authentication demo"
+git push origin main
+
+Confirm that these paths exist on GitHub:
+
+extensions/Containerfile
+extensions/pom.xml
+extensions/src/main/java/com/example/keycloak/
+07-custom-image-build.yaml
+08-token-enrichment-api.yaml
+09-openldap.yaml
+
+Delete an earlier demo installation only when you no longer need its data:
+
+oc delete project keycloak-demo
+
+Wait until it is removed:
+
+oc get project keycloak-demo
+
+Then run the initial deployment:
+
+./scripts/deploy.sh
+
+Monitor the Operator installation:
+
+oc get csv -n keycloak-demo
+oc get pods -n keycloak-demo
+
+Run:
+
+oc get pods -n keycloak-demo
+oc get svc -n keycloak-demo
+oc get pvc -n keycloak-demo
+
+Expected components:
+
+keycloak-db
+openldap
+token-enrichment-api
+
+Check PostgreSQL:
+
+oc logs deployment/keycloak-db -n keycloak-demo
+
+Check LDAP:
+
+oc logs deployment/openldap -n keycloak-demo
+
+
+Then verify:
+
+oc rollout status deployment/openldap -n keycloak-demo
+
+Expected:
+
+deployment "openldap" successfully rolled out
+
+Verify LDAP users
+
+oc exec deployment/openldap \
+  -n keycloak-demo \
+  -- ldapsearch \
+  -x \
+  -H ldap://localhost:389 \
+  -D "cn=admin,dc=demo,dc=local" \
+  -w adminpass \
+  -b "ou=people,dc=demo,dc=local" \
+  "(objectClass=inetOrgPerson)" \
+  uid cn mail
+
+Expected response :
+
+# extended LDIF
+#
+# LDAPv3
+# base <ou=people,dc=demo,dc=local> with scope subtree
+# filter: (objectClass=inetOrgPerson)
+# requesting: uid cn mail 
+#
+
+# sp001, people, demo.local
+dn: uid=sp001,ou=people,dc=demo,dc=local
+cn: SP Employee
+uid: sp001
+mail: sp001@demo.local
+
+# p001, people, demo.local
+dn: uid=p001,ou=people,dc=demo,dc=local
+cn: P Employee
+uid: p001
+mail: p001@demo.local
+
+# search result
+search: 2
+result: 0 Success
+
+# numResponses: 3
+# numEntries: 2
+
+Check the enrichment API:
+
+oc logs deployment/token-enrichment-api -n keycloak-demo
+
+Test the enrichment API from inside the cluster:
+
+oc run curl-test \
+  -n keycloak-demo \
+  --rm -it \
+  --restart=Never \
+  --image=curlimages/curl \
+  -- \
+  curl -s "http://token-enrichment-api:8080/enrich?username=sp001"
+
+Expected response:
+
+{
+  "userId": "EMP-SP001",
+  "userType": "employee",
+  "roles": [
+    "employee_user",
+    "employee_portal_access"
+  ]
+}
+
+Build the custom Keycloak image
+
+The custom image contains:
+
+Username-pattern backend guard
+External enrichment protocol mapper
+Comma-separated role mapper
+
+Start the build:
+
+oc start-build customer-keycloak \
+  -n keycloak-demo \
+  --follow
+
+Watch it separately with:
+
+oc get builds -n keycloak-demo
+
+View build logs:
+
+oc logs \
+  -n keycloak-demo \
+  build/customer-keycloak-1 \
+  -f
+

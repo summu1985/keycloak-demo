@@ -120,3 +120,38 @@ The demo mapper has a 2-second connection timeout and 3-second request timeout. 
 ## Demo-only warnings
 
 The sample contains plaintext demonstration secrets and uses non-TLS LDAP. Do not use those settings in production. Use External Secrets/Sealed Secrets or a vault, LDAPS, a supported HA database, network policies, admin MFA, external audit/SIEM integration, and pinned/signed images.
+
+## OpenLDAP on OpenShift
+
+The demo OpenLDAP image performs ownership changes during startup. OpenShift also mounts ConfigMaps read-only. Therefore, `09-openldap.yaml` uses this pattern:
+
+```text
+ConfigMap (read-only) -> init container -> writable emptyDir -> OpenLDAP bootstrap directory
+```
+
+The Deployment uses the dedicated service account `openldap-sa`. For this demo image, a cluster administrator must grant it the `anyuid` SCC:
+
+```bash
+oc adm policy add-scc-to-user anyuid \
+  -z openldap-sa \
+  -n keycloak-demo
+```
+
+`scripts/deploy.sh` performs this automatically when the logged-in user has permission. If not, it prints the exact command for a cluster administrator.
+
+Verify OpenLDAP after deployment:
+
+```bash
+oc rollout status deployment/openldap -n keycloak-demo --timeout=180s
+oc logs deployment/openldap -n keycloak-demo
+
+oc exec deployment/openldap -n keycloak-demo -- \
+  ldapsearch -x \
+  -H ldap://localhost:389 \
+  -D 'cn=admin,dc=demo,dc=local' \
+  -w adminpass \
+  -b 'ou=people,dc=demo,dc=local' \
+  '(objectClass=inetOrgPerson)' uid cn mail
+```
+
+The `anyuid` SCC is for the temporary LDAP simulator only. Do not use this LDAP deployment as a production design.

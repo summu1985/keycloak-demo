@@ -5,5 +5,6 @@ resources:
   - 03-postgres.yaml
   - 04-keycloak-db-secret.yaml
   - 07-custom-image-build.yaml
-  - 08-token-enrichment-api.yaml
   - 09-openldap.yaml
+  - 10-mock-sms-api.yaml
+  - 11-mock-customer-registry.yaml

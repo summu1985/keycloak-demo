@@ -1,22 +1,25 @@
 # Configure the demo browser authentication flow
 
-This flow implements password validation against the user's actual storage provider, validates that the provider matches the username pattern, and requires TOTP for users carrying the `otp_required` role.
+This flow supports LDAP employees, local Keycloak users, and registered mobile customers who are provisioned just in time and authenticate without a password.
 
 1. Sign in to the `customer-iam` realm Admin Console.
 2. Open **Authentication > Flows**.
-3. Duplicate the built-in **browser** flow and name it `demo-browser`.
-4. In the copied flow, locate the forms subflow. Keep **Username Password Form** as `REQUIRED`.
-5. Immediately after it, choose **Add step**, select **Username Pattern / Backend Guard**, and mark it `REQUIRED`.
-6. Disable the copied default `Conditional 2FA` subflow to prevent OTP from being triggered merely because any user has configured OTP.
-7. Add a new subflow named `OTP for mobile users`; set it to `CONDITIONAL`.
-8. Inside that subflow add **Condition - User Role**, set it to `REQUIRED`, and configure role `otp_required`.
-9. Add **OTP Form** after the condition and set it to `REQUIRED`.
-10. Bind `demo-browser` as the realm browser flow.
+3. Duplicate the built-in **browser** flow and name it `demo-browser-passwordless-otp`.
+4. In the copied Forms subflow, disable or delete **Username Password Form**.
+5. Add **JIT Customer Username Form** as `REQUIRED`. Configure the registry URL as `http://mock-customer-registry:8080/customers/by-mobile`.
+6. Add a subflow named **Authentication Method** and set it to `REQUIRED`.
+7. Inside it, add **Mobile Number Passwordless OTP** as `ALTERNATIVE`. Configure `http://mock-sms-api:8080/send`, TTL `120`, and attempts `3`.
+8. Add **Password Form** in the same subflow as `ALTERNATIVE`.
+9. After the subflow, add **Username Pattern / Backend Guard** as `REQUIRED`.
+10. Disable the copied Conditional OTP/TOTP subflow.
+11. Bind `demo-browser-passwordless-otp` as the realm browser flow.
 
 Expected behavior:
 
-- `sp001` and `p001`: LDAP password validation, backend guard accepts only a federated LDAP user, user type is employee.
-- `9876543210`: local Keycloak password followed by Configure TOTP on first login and TOTP on later logins.
-- `agent001`, `banca001`: local Keycloak password only.
+- `sp001` and `p001`: resolved from LDAP and authenticated by password.
+- `9876543210`: validated as active by the registry, created/refreshed in Keycloak, then authenticated using a mock SMS OTP without a password.
+- `9876500000`: rejected because the registry marks it inactive.
+- `9999999999`: rejected because it is unknown.
+- `agent001` and `banca001`: authenticated from Keycloak's local database by password.
 
-The provided implementation interprets “soft OTP login” as password plus app-generated TOTP. OTP-only authentication is a separate custom credential/authenticator design and is not implemented here.
+See `JIT-CUSTOMER-PROVISIONING.md` and `MOBILE-OTP-SETUP.md` for the full demonstration steps.

@@ -1,0 +1,77 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mock-sms-api-code
+  namespace: keycloak-demo
+data:
+  app.py: |
+    import json
+    import secrets
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+    from urllib.parse import urlparse, parse_qs
+
+    class Handler(BaseHTTPRequestHandler):
+      def do_GET(self):
+        parsed = urlparse(self.path)
+        if parsed.path != '/send':
+          self.send_response(404); self.end_headers(); return
+        mobile = parse_qs(parsed.query).get('mobile', ['unknown'])[0]
+        otp = f'{secrets.randbelow(1000000):06d}'
+        print(f'MOCK SMS -> mobile={mobile} otp={otp}', flush=True)
+        body = json.dumps({'status':'sent','mobile':mobile,'otp':otp}).encode()
+        self.send_response(200)
+        self.send_header('Content-Type','application/json')
+        self.send_header('Cache-Control','no-store')
+        self.send_header('Content-Length',str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+      def log_message(self, fmt, *args):
+        return
+
+    HTTPServer(('0.0.0.0',8080), Handler).serve_forever()
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mock-sms-api
+  namespace: keycloak-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mock-sms-api
+  template:
+    metadata:
+      labels:
+        app: mock-sms-api
+    spec:
+      containers:
+        - name: api
+          image: registry.access.redhat.com/ubi9/python-312
+          command: [python3, /opt/app/app.py]
+          ports:
+            - containerPort: 8080
+          readinessProbe:
+            tcpSocket:
+              port: 8080
+            initialDelaySeconds: 3
+          volumeMounts:
+            - name: code
+              mountPath: /opt/app
+      volumes:
+        - name: code
+          configMap:
+            name: mock-sms-api-code
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mock-sms-api
+  namespace: keycloak-demo
+spec:
+  selector:
+    app: mock-sms-api
+  ports:
+    - port: 8080
+      targetPort: 8080

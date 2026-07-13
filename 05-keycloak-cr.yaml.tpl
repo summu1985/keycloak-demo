@@ -4,9 +4,9 @@ metadata:
   name: customer-iam
   namespace: keycloak-demo
 spec:
-  instances: 2
+  instances: 1
 
-  image: quay.io/summu85/customer-keycloak:demo-no-enrichment
+  image: quay.io/summu85/customer-keycloak:demo-no-enrichment-v2
 
   db:
     vendor: postgres
@@ -21,12 +21,10 @@ spec:
 
   hostname:
     hostname: ${KEYCLOAK_HOSTNAME}
+    strict: false
+
+  proxy:
+    headers: xforwarded
 
   http:
     httpEnabled: true
-
-  additionalOptions:
-    - name: proxy-headers
-      value: xforwarded
-    - name: hostname-strict
-      value: "false"

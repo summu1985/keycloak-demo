@@ -5,17 +5,28 @@ metadata:
   namespace: keycloak-demo
 spec:
   instances: 2
-  image: image-registry.openshift-image-registry.svc:5000/keycloak-demo/customer-keycloak:latest
+
+  image: quay.io/summu85/customer-keycloak:demo-no-enrichment
+
   db:
     vendor: postgres
     host: keycloak-db
     database: keycloak
-    usernameSecret: {name: keycloak-db-secret, key: username}
-    passwordSecret: {name: keycloak-db-secret, key: password}
+    usernameSecret:
+      name: keycloak-db-secret
+      key: username
+    passwordSecret:
+      name: keycloak-db-secret
+      key: password
+
   hostname:
     hostname: ${KEYCLOAK_HOSTNAME}
+
   http:
     httpEnabled: true
+
   additionalOptions:
-    - {name: proxy-headers, value: xforwarded}
-    - {name: hostname-strict, value: "false"}
+    - name: proxy-headers
+      value: xforwarded
+    - name: hostname-strict
+      value: "false"

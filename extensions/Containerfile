@@ -1,10 +1,23 @@
 ARG RHBK_IMAGE=registry.redhat.io/rhbk/keycloak-rhel9:26.2
+
 FROM registry.access.redhat.com/ubi9/openjdk-21 AS build
+
 USER 0
+
 COPY pom.xml /tmp/build/pom.xml
 COPY src /tmp/build/src
+
 WORKDIR /tmp/build
+
 RUN mvn -B -DskipTests package
+
 FROM ${RHBK_IMAGE}
-COPY --from=build /tmp/build/target/keycloak-demo-extensions-1.0.0.jar /opt/keycloak/providers/
-RUN /opt/keycloak/bin/kc.sh build
+
+COPY --from=build \
+  /tmp/build/target/keycloak-demo-extensions-1.0.0.jar \
+  /opt/keycloak/providers/keycloak-demo-extensions.jar
+
+RUN /opt/keycloak/bin/kc.sh build \
+    --db=postgres \
+    --health-enabled=true \
+    --metrics-enabled=true

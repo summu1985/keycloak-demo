@@ -1,20 +1,17 @@
-# Customer Demo Variant (No External Token Enrichment)
+# Consulting Variant (Includes External Token Enrichment)
 
-This branch demonstrates:
+This branch contains everything in the customer demo plus:
 
-- LDAP federation for `sp*` and `p*` employees
-- Local Keycloak database login for ordinary internal users
-- Just-in-time customer validation and provisioning for registered 10-digit mobile numbers
-- Passwordless OTP through a mock SMS API
-- Username/backend enforcement
-- Realm roles in a JSON array and comma-separated string claim
+- `ExternalEnrichmentProtocolMapper`
+- Mock `token-enrichment-api`
+- `employee-enrichment` mapper configuration in the realm import
 
-It intentionally excludes the external API token-enrichment protocol mapper and its mock API. Position external token enrichment as technically feasible through a custom Keycloak provider, requiring detailed design, security review, performance testing, lifecycle ownership, and services engagement.
+Use this as a consulting accelerator or feasibility reference, not as the customer-facing demo branch. Production adoption requires API authentication, TLS, timeout/retry/circuit-breaker policy, high availability, privacy review, error semantics, observability, performance testing, and an agreed fail-open/fail-closed policy.
 
 Deploy from this branch:
 
 ```bash
-GIT_REF=demo-no-enrichment ./scripts/deploy.sh
+GIT_REF=consulting-enrichment ./scripts/deploy.sh
 oc start-build customer-keycloak -n keycloak-demo --follow
 ./scripts/deploy-keycloak.sh
 ```

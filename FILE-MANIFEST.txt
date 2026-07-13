@@ -6,6 +6,7 @@
 ./05-keycloak-cr.yaml.tpl
 ./06-realm-import.yaml
 ./07-custom-image-build.yaml
+./08-token-enrichment-api.yaml
 ./09-openldap.yaml
 ./10-mock-sms-api.yaml
 ./11-mock-customer-registry.yaml
@@ -19,6 +20,7 @@
 ./extensions/Containerfile
 ./extensions/pom.xml
 ./extensions/src/main/java/com/example/keycloak/CommaSeparatedRolesProtocolMapper.java
+./extensions/src/main/java/com/example/keycloak/ExternalEnrichmentProtocolMapper.java
 ./extensions/src/main/java/com/example/keycloak/JitCustomerUsernameAuthenticator.java
 ./extensions/src/main/java/com/example/keycloak/JitCustomerUsernameAuthenticatorFactory.java
 ./extensions/src/main/java/com/example/keycloak/MobileOtpAuthenticator.java

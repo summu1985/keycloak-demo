@@ -17,6 +17,7 @@ done
 oc apply \
   -f "$ROOT/03-postgres.yaml" \
   -f "$ROOT/04-keycloak-db-secret.yaml" \
+  -f "$ROOT/08-token-enrichment-api.yaml" \
   -f "$ROOT/09-openldap.yaml" \
   -f "$ROOT/10-mock-sms-api.yaml" \
   -f "$ROOT/11-mock-customer-registry.yaml"
@@ -50,6 +51,7 @@ fi
 
 
 echo "Waiting for mock APIs..."
+oc rollout status deployment/token-enrichment-api -n "$NS" --timeout=180s
 oc rollout status deployment/mock-sms-api -n "$NS" --timeout=180s
 oc rollout status deployment/mock-customer-registry -n "$NS" --timeout=180s
 

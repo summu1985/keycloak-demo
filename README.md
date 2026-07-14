@@ -1,4 +1,4 @@
-# RHBK Authentication Demo on OpenShift
+# RHBK Authentication and External Enrichment Demo on OpenShift
 
 Reusable Red Hat build of Keycloak demo for:
 
@@ -12,8 +12,9 @@ Reusable Red Hat build of Keycloak demo for:
 - SSO between two OIDC clients
 - Forced password change for migrated users
 - User and administrative audit events
+- Synchronous external access-token enrichment through a mock API
 
-The customer-facing branch intentionally excludes synchronous third-party token enrichment. That capability should be implemented as a separately engineered extension because it introduces an external dependency into token issuance and refresh.
+This consulting-enrichment variant adds a synchronous protocol mapper that calls a mock enrichment API during access-token creation. The validated customer-facing branch should remain separate as `demo-no-enrichment`.
 
 ## Prerequisites
 
@@ -23,20 +24,20 @@ The customer-facing branch intentionally excludes synchronous third-party token 
 
 ```bash
 podman build --platform linux/amd64 \
-  -t quay.io/summu85/customer-keycloak:demo-final-v2 \
+  -t quay.io/summu85/customer-keycloak:consulting-enrichment-v1 \
   -f extensions/Containerfile extensions
-podman push quay.io/summu85/customer-keycloak:demo-final-v2
+podman push quay.io/summu85/customer-keycloak:consulting-enrichment-v1
 ```
 
 ## Clean installation
 
 ```bash
 DELETE_EXISTING=true \
-KEYCLOAK_IMAGE=quay.io/summu85/customer-keycloak:demo-final-v2 \
+KEYCLOAK_IMAGE=quay.io/summu85/customer-keycloak:consulting-enrichment-v1 \
 ./scripts/install-demo.sh
 ```
 
-After installation, synchronize LDAP users in the Admin Console and assign `employee_user` to `sp001` and `p001`.
+After installation, synchronize LDAP users in the Admin Console and assign `employee_user` to `sp001` and `p001`. See `docs/EXTERNAL-TOKEN-ENRICHMENT.md` for enrichment behavior and validation.
 
 ## Verify
 
@@ -53,3 +54,12 @@ After installation, synchronize LDAP users in the Admin Console and assign `empl
 ## Production note
 
 The mock SMS endpoint represents an enterprise OTP orchestration service. A production integration should use separate challenge-generation and challenge-verification APIs, avoid returning the plain OTP to Keycloak, and implement rate limits, expiry, retries, replay prevention, audit controls, and secure service authentication.
+
+## Enrichment quick test
+
+```bash
+./scripts/test-enrichment.sh
+oc logs deployment/mock-enrichment-api -n keycloak-demo --since=5m
+```
+
+After a fresh OIDC login and code exchange, decode the access token and inspect `external_enrichment`.

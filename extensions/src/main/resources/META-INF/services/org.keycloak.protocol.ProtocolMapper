@@ -1,1 +1,2 @@
 com.example.keycloak.CommaSeparatedRolesProtocolMapper
+com.example.keycloak.ExternalEnrichmentProtocolMapper

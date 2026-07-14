@@ -70,6 +70,16 @@ else
   api POST "clients/$CLIENT_UUID/protocol-mappers/models" "$(jq -nc --argjson c "$CSV_CFG" '{name:"roles-csv",protocol:"openid-connect",protocolMapper:"comma-separated-roles-mapper",consentRequired:false,config:$c}')" >/dev/null
 fi
 
+# Ensure the external enrichment mapper is configured on employee-app.
+ENRICH=$(api GET "clients/$CLIENT_UUID/protocol-mappers/models" | jq -c '.[]|select(.name=="external-enrichment")' | head -1)
+ENRICH_CFG='{"claim.name":"external_enrichment","enrichment.api.url":"http://mock-enrichment-api:8080/enrich","enrichment.timeout.ms":"2000","enrichment.fail.on.error":"false","access.token.claim":"true"}'
+if [[ -n "$ENRICH" ]]; then
+  ENRICH_ID=$(jq -r '.id' <<<"$ENRICH")
+  api PUT "clients/$CLIENT_UUID/protocol-mappers/models/$ENRICH_ID" "$(jq --argjson c "$ENRICH_CFG" '.config=$c' <<<"$ENRICH")" >/dev/null
+else
+  api POST "clients/$CLIENT_UUID/protocol-mappers/models" "$(jq -nc --argjson c "$ENRICH_CFG" '{name:"external-enrichment",protocol:"openid-connect",protocolMapper:"external-enrichment-protocol-mapper",consentRequired:false,config:$c}')" >/dev/null
+fi
+
 # Create second client for SSO demonstration if absent.
 CLAIMS_COUNT=$(api GET 'clients?clientId=claims-app' | jq 'length')
 if [[ "$CLAIMS_COUNT" == 0 ]]; then

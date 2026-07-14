@@ -9,3 +9,5 @@ for username in 9876543210 9876500000 9999999999 sp-local migrated001; do
 done
 api DELETE 'events' >/dev/null || true
 echo 'Demo state reset. Core users and configuration retained.'
+
+echo "Mock enrichment API has no persistent state; no enrichment reset is required."

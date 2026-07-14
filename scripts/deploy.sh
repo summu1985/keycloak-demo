@@ -19,7 +19,8 @@ oc apply \
   -f "$ROOT/04-keycloak-db-secret.yaml" \
   -f "$ROOT/09-openldap.yaml" \
   -f "$ROOT/10-mock-sms-api.yaml" \
-  -f "$ROOT/11-mock-customer-registry.yaml"
+  -f "$ROOT/11-mock-customer-registry.yaml" \
+  -f "$ROOT/12-mock-enrichment-api.yaml"
 
 if oc auth can-i use scc/anyuid >/dev/null 2>&1 && \
    [[ "$(oc auth can-i use scc/anyuid)" == "yes" ]]; then
@@ -52,6 +53,7 @@ fi
 echo "Waiting for mock APIs..."
 oc rollout status deployment/mock-sms-api -n "$NS" --timeout=180s
 oc rollout status deployment/mock-customer-registry -n "$NS" --timeout=180s
+oc rollout status deployment/mock-enrichment-api -n "$NS" --timeout=180s
 
 oc apply -f "$ROOT/07-custom-image-build.yaml"
 

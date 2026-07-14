@@ -46,6 +46,16 @@ spec:
               access.token.claim: "true"
               id.token.claim: "true"
               userinfo.token.claim: "true"
+          - name: external-enrichment
+            protocol: openid-connect
+            protocolMapper: external-enrichment-protocol-mapper
+            consentRequired: false
+            config:
+              claim.name: external_enrichment
+              enrichment.api.url: http://mock-enrichment-api:8080/enrich
+              enrichment.timeout.ms: "2000"
+              enrichment.fail.on.error: "false"
+              access.token.claim: "true"
     users:
       - username: agent001
         enabled: true

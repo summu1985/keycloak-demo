@@ -12,3 +12,7 @@ oc cp "$NS/$POD:/opt/keycloak/providers/keycloak-demo-extensions.jar" "$JAR" -c 
 echo '== Authenticator factories =='; unzip -p "$JAR" META-INF/services/org.keycloak.authentication.AuthenticatorFactory
 echo '== Protocol mappers =='; unzip -p "$JAR" META-INF/services/org.keycloak.protocol.ProtocolMapper
 echo '== Templates =='; unzip -l "$JAR" | awk '/theme-resources\/templates\//{print $4}'
+
+echo '== Enrichment API =='
+oc get deployment,service -n "$NS" -l app=mock-enrichment-api
+oc exec deployment/mock-enrichment-api -n "$NS" -- python3 -c 'import urllib.request; print(urllib.request.urlopen("http://127.0.0.1:8080/health").read().decode())'

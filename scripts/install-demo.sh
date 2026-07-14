@@ -3,7 +3,7 @@ set -euo pipefail
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ROOT=$(cd "$SCRIPT_DIR/.." && pwd)
 NS="${NS:-keycloak-demo}"
-KEYCLOAK_IMAGE="${KEYCLOAK_IMAGE:-quay.io/summu85/customer-keycloak:demo-final-v2}"
+KEYCLOAK_IMAGE="${KEYCLOAK_IMAGE:-quay.io/summu85/customer-keycloak:consulting-enrichment-v1}"
 DELETE_EXISTING="${DELETE_EXISTING:-false}"
 if [[ "$DELETE_EXISTING" == true ]] && oc get namespace "$NS" >/dev/null 2>&1; then
   oc delete namespace "$NS"

@@ -8,3 +8,4 @@ resources:
   - 09-openldap.yaml
   - 10-mock-sms-api.yaml
   - 11-mock-customer-registry.yaml
+  - 12-mock-enrichment-api.yaml

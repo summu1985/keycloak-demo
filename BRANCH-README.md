@@ -1,20 +1,40 @@
-# Customer Demo Variant (No External Token Enrichment)
+# Consulting Enrichment Variant
 
-This branch demonstrates:
+This branch contains the full validated authentication demo plus a synchronous external token-enrichment protocol mapper.
 
-- LDAP federation for `sp*` and `p*` employees
-- Local Keycloak database login for ordinary internal users
-- Just-in-time customer validation and provisioning for registered 10-digit mobile numbers
-- Passwordless OTP through a mock SMS API
-- Username/backend enforcement
-- Realm roles in a JSON array and comma-separated string claim
+The mapper sends this JSON payload during access-token creation:
 
-It intentionally excludes the external API token-enrichment protocol mapper and its mock API. Position external token enrichment as technically feasible through a custom Keycloak provider, requiring detailed design, security review, performance testing, lifecycle ownership, and services engagement.
+```json
+{
+  "userid": "9876543210",
+  "userType": "customer",
+  "roles": ["customer_user", "policy_viewer", "claim_submitter"]
+}
+```
 
-Deploy from this branch:
+The mock enrichment API echoes those values and adds:
+
+```json
+{
+  "customKey": "customValue",
+  "enrichmentApplied": true
+}
+```
+
+The complete response appears in the access token under `external_enrichment`.
+
+Recommended Git branch: `consulting-enrichment`.
+
+Build and install:
 
 ```bash
-GIT_REF=demo-no-enrichment ./scripts/deploy.sh
-oc start-build customer-keycloak -n keycloak-demo --follow
-./scripts/deploy-keycloak.sh
+podman build --platform linux/amd64 \
+  -t quay.io/summu85/customer-keycloak:consulting-enrichment-v1 \
+  -f extensions/Containerfile extensions
+podman push quay.io/summu85/customer-keycloak:consulting-enrichment-v1
+
+DELETE_EXISTING=true \
+KEYCLOAK_IMAGE=quay.io/summu85/customer-keycloak:consulting-enrichment-v1 \
+GIT_REF=consulting-enrichment \
+./scripts/install-demo.sh
 ```

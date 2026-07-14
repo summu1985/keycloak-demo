@@ -11,8 +11,21 @@ require_cmd() {
 }
 
 load_admin_credentials() {
-  ADMIN_USER="${ADMIN_USER:-$(oc get secret customer-iam-initial-admin -n "$NS" -o jsonpath='{.data.username}' | base64 -d)}"
-  ADMIN_PASS="${ADMIN_PASS:-$(oc get secret customer-iam-initial-admin -n "$NS" -o jsonpath='{.data.password}' | base64 -d)}"
+  ADMIN_USER="$(
+    oc get secret customer-iam-initial-admin \
+      -n "$NS" \
+      -o jsonpath='{.data.username}' |
+    base64 -d
+  )"
+
+  ADMIN_PASS="$(
+    oc get secret customer-iam-initial-admin \
+      -n "$NS" \
+      -o jsonpath='{.data.password}' |
+    base64 -d
+  )"
+
+  export ADMIN_USER ADMIN_PASS
 }
 
 refresh_token() {

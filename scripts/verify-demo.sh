@@ -8,11 +8,14 @@ JAR="$TMP/keycloak-demo-extensions.jar"
 echo '== Pods =='; oc get pods -n "$NS"
 echo '== Custom image =='; oc get pod "$POD" -n "$NS" -o jsonpath='{.spec.containers[?(@.name=="keycloak")].image}'; echo
 echo '== Provider JAR =='; oc exec "$POD" -n "$NS" -c keycloak -- ls -l /opt/keycloak/providers
-oc cp "$NS/$POD:/opt/keycloak/providers/keycloak-demo-extensions.jar" "$JAR" -c keycloak >/dev/null
+oc exec "$POD" -n "$NS" -c keycloak -- cat /opt/keycloak/providers/keycloak-demo-extensions.jar > "$JAR"
 echo '== Authenticator factories =='; unzip -p "$JAR" META-INF/services/org.keycloak.authentication.AuthenticatorFactory
 echo '== Protocol mappers =='; unzip -p "$JAR" META-INF/services/org.keycloak.protocol.ProtocolMapper
 echo '== Templates =='; unzip -l "$JAR" | awk '/theme-resources\/templates\//{print $4}'
 
 echo '== Enrichment API =='
-oc get deployment,service -n "$NS" -l app=mock-enrichment-api
+oc get \
+  deployment/mock-enrichment-api \
+  service/mock-enrichment-api \
+  -n "$NS"
 oc exec deployment/mock-enrichment-api -n "$NS" -- python3 -c 'import urllib.request; print(urllib.request.urlopen("http://127.0.0.1:8080/health").read().decode())'

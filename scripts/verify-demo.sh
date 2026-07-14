@@ -1,28 +1,78 @@
 #!/usr/bin/env bash
+
 set -euo pipefail
-NS=${NS:-keycloak-demo}
-POD=${POD:-customer-iam-0}
 
-echo '== Pods =='
-oc get pods -n "$NS"
+NAMESPACE="${NAMESPACE:-keycloak-demo}"
+KEYCLOAK_POD="$(
+  oc get pods \
+    -n "$NAMESPACE" \
+    -l app=keycloak \
+    -o jsonpath='{.items[0].metadata.name}' 2>/dev/null || true
+)"
 
-echo '== Custom image =='
-oc get pod "$POD" -n "$NS" -o jsonpath='{.spec.containers[0].image}'; echo
+if [[ -z "$KEYCLOAK_POD" ]]; then
+  KEYCLOAK_POD="$(
+    oc get pods \
+      -n "$NAMESPACE" \
+      -o jsonpath='{range .items[*]}{.metadata.name}{"\n"}{end}' \
+      | grep '^customer-iam-' \
+      | grep -v 'realm' \
+      | head -1
+  )"
+fi
 
-echo '== Provider JAR =='
-oc exec "$POD" -n "$NS" -c keycloak -- ls -l /opt/keycloak/providers
+if [[ -z "$KEYCLOAK_POD" ]]; then
+  echo "Unable to locate the Keycloak pod."
+  exit 1
+fi
 
-echo '== Authenticator factories =='
-oc exec "$POD" -n "$NS" -c keycloak -- sh -c \
-  'unzip -p /opt/keycloak/providers/keycloak-demo-extensions.jar META-INF/services/org.keycloak.authentication.AuthenticatorFactory'
+TMP_DIR="$(mktemp -d)"
+JAR_FILE="$TMP_DIR/keycloak-demo-extensions.jar"
 
-echo '== Protocol mappers =='
-oc exec "$POD" -n "$NS" -c keycloak -- sh -c \
-  'unzip -p /opt/keycloak/providers/keycloak-demo-extensions.jar META-INF/services/org.keycloak.protocol.ProtocolMapper'
+cleanup() {
+  rm -rf "$TMP_DIR"
+}
+trap cleanup EXIT
 
-echo '== Mock customer registry =='
-oc run registry-check -n "$NS" --rm -i --restart=Never --image=curlimages/curl -- \
-  curl -s http://mock-customer-registry:8080/customers/by-mobile/9876543210; echo
+echo "== Pods =="
+oc get pods -n "$NAMESPACE"
 
-echo '== Services =='
-oc get svc -n "$NS" | grep -E 'openldap|mock-sms-api|mock-customer-registry|customer-iam'
+echo
+echo "== Custom image =="
+oc get pod "$KEYCLOAK_POD" \
+  -n "$NAMESPACE" \
+  -o jsonpath='{.spec.containers[?(@.name=="keycloak")].image}'
+echo
+
+echo
+echo "== Provider JAR in pod =="
+oc exec "$KEYCLOAK_POD" \
+  -n "$NAMESPACE" \
+  -c keycloak \
+  -- ls -l /opt/keycloak/providers
+
+echo
+echo "== Copying provider JAR locally =="
+oc cp \
+  "$NAMESPACE/$KEYCLOAK_POD:/opt/keycloak/providers/keycloak-demo-extensions.jar" \
+  "$JAR_FILE" \
+  -c keycloak
+
+echo
+echo "== Authenticator factories =="
+unzip -p "$JAR_FILE" \
+  META-INF/services/org.keycloak.authentication.AuthenticatorFactory
+
+echo
+echo "== Protocol mappers =="
+unzip -p "$JAR_FILE" \
+  META-INF/services/org.keycloak.protocol.ProtocolMapper
+
+echo
+echo "== Compiled custom provider classes =="
+unzip -l "$JAR_FILE" \
+  | grep 'com/example/keycloak/.*class' \
+  | awk '{print $4}'
+
+echo
+echo "Provider verification completed successfully."

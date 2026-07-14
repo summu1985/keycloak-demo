@@ -1,0 +1,19 @@
+# Build output
+extensions/target/
+*.class
+*.jar
+
+# Generated manifests and temporary files
+*.rendered.yaml
+/tmp/
+.env
+
+# Editor/OS metadata
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Local credentials
+*.kubeconfig
+pull-secret*.json

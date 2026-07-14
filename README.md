@@ -1,66 +1,55 @@
-# RHBK customer authentication demo on OpenShift
+# RHBK Authentication Demo on OpenShift
 
-This package implements one coherent browser flow for:
+Reusable Red Hat build of Keycloak demo for:
 
-- LDAP employees (`sp*`, `p*`)
-- local Keycloak users
-- registered customers using 10-digit mobile numbers and passwordless OTP
-- JIT creation of eligible customer users
-- backend-source enforcement
-- realm roles in JSON-array and comma-separated token claims
+- LDAP employee authentication (`sp*`, `p*`)
+- Local Keycloak DB authentication for Agent and Banca users
+- Registered mobile-customer validation through a mock customer registry
+- Just-in-time mobile-user provisioning
+- Passwordless SMS OTP through a mock OTP/SMS API
+- Username-pattern backend enforcement
+- Realm roles in JSON-array and comma-separated token claims
+- SSO between two OIDC clients
+- Forced password change for migrated users
+- User and administrative audit events
 
-External API token enrichment is intentionally excluded from this customer-facing package.
+The customer-facing branch intentionally excludes synchronous third-party token enrichment. That capability should be implemented as a separately engineered extension because it introduces an external dependency into token issuance and refresh.
 
-## Custom providers
+## Prerequisites
 
-- `JIT Customer Username Form`: username-first resolution and customer-registry validation/JIT provisioning
-- `Mobile Number Passwordless OTP`: mock SMS OTP generation and verification
-- `Username Pattern / Backend Guard`: LDAP/local source enforcement and user-type derivation
-- `Comma-separated realm roles`: adds `roles_csv`
+`oc`, `curl`, `jq`, `python3`, `podman`, and access to an OpenShift cluster and Quay repository.
 
-## Build locally
+## Build and push
 
 ```bash
-git switch demo-no-enrichment
-podman login registry.redhat.io
 podman build --platform linux/amd64 \
-  -t quay.io/summu85/customer-keycloak:demo-no-enrichment-v3 \
+  -t quay.io/summu85/customer-keycloak:demo-final-v2 \
   -f extensions/Containerfile extensions
-podman login quay.io
-podman push quay.io/summu85/customer-keycloak:demo-no-enrichment-v3
+podman push quay.io/summu85/customer-keycloak:demo-final-v2
 ```
 
-## Deploy
+## Clean installation
 
 ```bash
-./scripts/deploy.sh
-KEYCLOAK_IMAGE=quay.io/summu85/customer-keycloak:demo-no-enrichment-v3 \
-  ./scripts/deploy-keycloak.sh
+DELETE_EXISTING=true \
+KEYCLOAK_IMAGE=quay.io/summu85/customer-keycloak:demo-final-v2 \
+./scripts/install-demo.sh
+```
+
+After installation, synchronize LDAP users in the Admin Console and assign `employee_user` to `sp001` and `p001`.
+
+## Verify
+
+```bash
 ./scripts/verify-demo.sh
 ```
 
-Then complete:
+## Reset demo-generated data
 
-1. `docs/LDAP-SETUP.md`
-2. `docs/EXACT-FLOW-CONFIGURATION.md`
-3. `docs/DEMO-RUNBOOK.md`
+```bash
+./scripts/reset-demo.sh
+```
 
-## Demo identities
+## Production note
 
-| Identity | Source | Credential |
-|---|---|---|
-| `sp001` | LDAP | `Password@123` |
-| `p001` | LDAP | `Password@123` |
-| `agent001` | Keycloak DB | `Password@123` |
-| `banca001` | Keycloak DB | `Password@123` |
-| `9876543210` | Customer registry + JIT | OTP only |
-| `9876500000` | Inactive registry record | rejected |
-| `9999999999` | Unknown | rejected |
-
-## Demo-only warning
-
-The mock SMS API exposes OTP values in logs, LDAP uses plain LDAP, and sample secrets/passwords are committed for repeatability. These resources are not production-ready.
-
-## Definitive authentication-flow setup
-
-Use `scripts/configure-auth-flow.sh` to create and bind the complete flow through the Keycloak Admin REST API. See `docs/IMPLEMENTATION-AND-DEMO.md` for deployment and demonstration steps.
+The mock SMS endpoint represents an enterprise OTP orchestration service. A production integration should use separate challenge-generation and challenge-verification APIs, avoid returning the plain OTP to Keycloak, and implement rate limits, expiry, retries, replay prevention, audit controls, and secure service authentication.

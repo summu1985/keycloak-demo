@@ -1,3 +1,0 @@
-com.example.keycloak.UsernamePatternGuardAuthenticatorFactory
-com.example.keycloak.MobileOtpAuthenticatorFactory
-com.example.keycloak.JitCustomerUsernameAuthenticatorFactory

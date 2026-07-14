@@ -40,7 +40,12 @@ spec:
           - name: roles-csv
             protocol: openid-connect
             protocolMapper: comma-separated-roles-mapper
-            config: {}
+            consentRequired: false
+            config:
+              claim.name: roles_csv
+              access.token.claim: "true"
+              id.token.claim: "true"
+              userinfo.token.claim: "true"
     users:
       - username: agent001
         enabled: true
